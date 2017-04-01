@@ -1,5 +1,5 @@
  #include "CImg.h"  
-using namespace cimg_library;  
+using namespace cimg_library;
 #include <vector>  
 #include <iostream>
 #include "cal.h"
@@ -7,7 +7,7 @@ using namespace std;
 
 #define PI 3.14159265358979323846  
 
-  
+vector<pair<int, int>> points[180][2976];  
 int main() {
     while(1) {
 	    char str[30];
@@ -15,8 +15,8 @@ int main() {
 	    cin.getline(str, 30);
 	    CImg<double> image(str); 
 	    int gradlimit, threadhold, distance;
-            cout << "input the limit of grad -- threadhold for hough -- distance for calucating the max" << endl;
-	    cin >> gradlimit >> threadhold >> distance; 
+            cout << "input the limit of grad -- threadhold for hough" << endl;
+	    cin >> gradlimit >> threadhold; 
 	    CImg<double> grayImg(image);   
 	    int width = image.width();
 	    int height = image.height();
@@ -25,7 +25,7 @@ int main() {
 		double R = grayImg(x, y, 0, 0);  
 		double G = grayImg(x, y, 0, 1);  
 		double B = grayImg(x, y, 0, 2);  
-		double Gray = R * 0.299 + G * 0.587 + B * 0.114;  
+		double Gray = (R + G  + B )/3.0;  
 		grayImg(x, y, 0, 0) = Gray;  
 		grayImg(x, y, 0, 1) = Gray;  
 		grayImg(x, y, 0, 2) = Gray;  
@@ -34,9 +34,9 @@ int main() {
 	    //去除噪点
 	    grayImg.blur(3);  
 	  
-	    CImg<double> gradnum(width, height, 1, 1, 0);  
+	    CImg<double> gradNum(width, height, 1, 1, 0);  
 	    int maxDistance = getDis(width, height);  
-	    CImg<double> hough(360, maxDistance, 1, 1, 0);  
+	    CImg<double> hough(180, maxDistance, 1, 1, 0);  
 	    // 定义3*3领域矩阵I  
 	    CImg_3x3(I, double);  
 	    // 遍历计算梯度值  
@@ -45,69 +45,65 @@ int main() {
 		const double iy = Icp - Icn;  
 		double grad = std::sqrt(ix*ix + iy*iy);  
 		//利用梯度算子，如果梯度大于梯度阀值，说明该点是边缘点
-		if (grad > gradlimit) { 
-		    cimg_forX(hough, angle) {  
-		        double rangle = (double)angle*PI / 180.0;  
-		        int polar = (int)(x*cos(rangle) + y*sin(rangle));  
-		        if (polar >= 0 && polar < hough.height()) {
-			    //将经过该边缘点的极坐标上的直线加一
-		            hough(angle, polar) += 1;
-		        }  
-		    }  
-		}  
-	    }
-	    vector<pair<int, int>> peaks;
-	    vector<double> values;
-	    //遍历hough图，寻找一定区域上的极大值
-	    cimg_forXY(hough, angle, polar) {
-		bool newLine = true;
-		//判断该直线是否在图像上
-		if (isValid(angle, polar, width, height)) {
-			//如果计数值大于计数的阀值，说明计数有效
-			if (hough(angle, polar, 0, 0) > threadhold) {
-			    for (int i = 0; i < peaks.size(); i++) {
-				//遍历已经加入的计数有效的值，如果两个值在一定区域内，取计数值较大的
-				if (getDis(peaks[i].first-angle, peaks[i].second-polar) < distance) {
-				    if (values[i] < hough(angle, polar, 0, 0)) {
-					peaks[i].first = angle;
-					peaks[i].second = polar;
-					values[i] = hough(angle, polar, 0, 0);
-			
-				    }
-				    newLine = false;
-				}
-			    }
-			    if (newLine) {
-				peaks.push_back(make_pair(angle, polar));
-				values.push_back(hough(angle, polar));
-			    }
-			}
+		if (grad > gradlimit) {
+		    gradNum(x, y, 0) = 255;
 		}
-	    }
-	    //lines为根据前面加入的值得到的直线，包括斜率截距
-	    vector<pair<double, double>> lines = calLine(peaks);
-	    const double color[] = {0, 255, 0};
-	    for (int mm = 0; mm < lines.size(); mm++) {
-		int x1 = (int)-lines[mm].second/lines[mm].first;
-		int x2 = (int)(height-1-lines[mm].second)/lines[mm].first;
-		int y1 = (int)lines[mm].second;
-		int y2 = (int)(lines[mm].first*(width-1))+lines[mm].second;
-		//这里需要区分直线斜率大于1小于-1的情况
-		if (abs(lines[mm].first) > 1) {
-		    image.draw_line(x1, 0, x2, height-1, color);	
-		}
-		else {
-		    image.draw_line(0, y1, width-1, y2, color);	
-		}
-		cout << "y = x* " << lines[mm].first << " + " << lines[mm].second << endl;
-	    }
-	    vector<pair<double, double>> points = intersection(lines, width, height);
-	    for (int mm = 0; mm < points.size(); mm++) {
-		image.draw_circle(points[mm].first, points[mm].second, 25, color);
-		cout << "x: " << lines[mm].first << " y: " << lines[mm].second << endl;
+		else
+		    gradNum(x, y, 0) = 0;
 	    }
 	    
-	    image.display();
+	    double sinvalue[180];
+	    double cosvalue[180];
+	    for (int i = 0; i < 180; i++) {
+	        sinvalue[i] = sin(i*PI/180);
+		cosvalue[i] = cos(i*PI/180);
+	    }	    
+            //遍历梯度图
+	    cimg_forXY(gradNum, x, y) {
+		if (gradNum(x, y, 0) == 255.0) {
+		    for (int m = 0; m < 180; m++) {
+		        int p = (int)(x*cosvalue[m]+y*sinvalue[m]);
+			p = p/2+maxDistance/2;
+		        hough(m, p, 0) += 1;
+			points[m][p].push_back(make_pair(x, y));
+		    }
+		}
+	    }
+	    const double color[] = {0, 255, 0};
+	    CImg<double> dest(width, height, 1, 3, 0);
+	    vector<pair<int, int>> lines;
+	    
+	    cimg_forXY(hough, i, j) {
+	        if (hough(i, j, 0) > threadhold) {
+		    bool newline = true;
+		    for (int k = 0; k < lines.size(); k++) {
+		        if ((abs(lines[k].first-i) < 10 ||
+                             abs(500-lines[k].first+i) < 5) &&
+                             (abs(lines[k].second-j) < 50)) {
+			    if (hough(i, j, 0) > hough(lines[k].first, lines[k].second, 0)) {
+				lines[k].first = i;
+				lines[k].second = j;
+			    }
+			    newline = false;
+			}
+		    }
+		    if (newline) lines.push_back(make_pair(i, j));
+		}
+	    }
+	    vector<pair<double, double>> points_ = intersection(calLine(lines, maxDistance), width, height);
+	    for (int mm = 0; mm < lines.size(); mm++) {
+		cout << "y = x* " << lines[mm].first << " + " << lines[mm].second << endl;
+		vector<pair<int, int>> temp = points[lines[mm].first][lines[mm].second];
+		for (int i = 0; i < temp.size(); i++) {
+		    dest(temp[i].first, temp[i].second, 0) = 255;		
+		} 
+	    }
+	    for (int mm = 0; mm < points_.size(); mm++) {
+		cout << "k: " << points_[mm].first << " m: " << points_[mm].second << endl;
+		dest.draw_circle(points_[mm].first, points_[mm].second, 25, color);
+	    }
+	    dest.display();
+
     }  
   
 } 

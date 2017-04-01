@@ -5,12 +5,12 @@
 
 
 using namespace std;
-vector<pair<double, double>> calLine(vector<pair<int, int>> peaks) {
+vector<pair<double, double>> calLine(vector<pair<int, int>> peaks, int dis) {
     vector<pair<double, double>> lines;
     for (int i = 0; i < peaks.size(); i++) {
         double angle = (double)peaks[i].first*PI/180.0;
 	double k = -cos(angle)/sin(angle);
-	double m = peaks[i].second/sin(angle);
+	double m = (peaks[i].second*2-dis)/sin(angle);
         lines.push_back(make_pair(k, m)); 
     }
     return lines;
