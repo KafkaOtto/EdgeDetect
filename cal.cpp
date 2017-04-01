@@ -32,28 +32,7 @@ vector<pair<double, double>> intersection(vector<pair<double, double>> lines, in
     }
     return points;
 }
-int xInter(int angle, int polar, int x) {
-    double a = (double)angle*PI/180;
-    double k = -cos(a)/sin(a);
-    double m = (double)polar/sin(a);
-    return (k*x+m);
-}
-int yInter(int angle, int polar, int y) {
-    double a = (double)angle*PI/180;
-    double k = -cos(a)/sin(a);
-    double m = (double)polar/sin(a);
-    return ((y-m)/k);
-}
-bool isValid(int angle, int polar, int width, int height) {
-   int x1 = xInter(angle, polar, 0);
-   int x2 = xInter(angle, polar, height-1);
-   int y1 = yInter(angle, polar, 0);
-   int y2 = yInter(angle, polar, width-1);
-   return (x1 >= 0 && x1 <= width-1) ||
-          (x2 >= 0 && x2 <= width-1) ||
-          (y1 >= 0 && y1 <= height-1) ||
-          (y2 >= 0 && y2 <= height-1);
-}
+
 double getDis(double x, double y) {
     return sqrt(x*x+y*y);
 }
